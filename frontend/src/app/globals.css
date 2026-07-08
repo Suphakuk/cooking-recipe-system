@@ -1,0 +1,84 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Market Kitchen palette (HSL) */
+    --background: 37 43% 96%;        /* #FBF7F0 warm paper */
+    --foreground: 30 15% 10%;        /* #1F1B16 ink */
+
+    --card: 0 0% 100%;
+    --card-foreground: 30 15% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 30 15% 10%;
+
+    --primary: 137 33% 27%;          /* #2F5D3A herb green */
+    --primary-foreground: 37 43% 96%;
+
+    --secondary: 11 68% 51%;         /* #D6482E tomato */
+    --secondary-foreground: 0 0% 100%;
+
+    --accent: 79 50% 48%;            /* #8FB93F lime */
+    --accent-foreground: 30 15% 10%;
+
+    --muted: 34 25% 90%;
+    --muted-foreground: 30 10% 40%;
+
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 30 25% 82%;            /* clay border */
+    --input: 30 25% 82%;
+    --ring: 137 33% 27%;
+
+    --radius: 0.75rem;
+  }
+
+  .dark {
+    --background: 30 15% 8%;
+    --foreground: 37 43% 94%;
+    --card: 30 14% 11%;
+    --card-foreground: 37 43% 94%;
+    --popover: 30 14% 11%;
+    --popover-foreground: 37 43% 94%;
+    --primary: 79 50% 48%;
+    --primary-foreground: 30 15% 10%;
+    --secondary: 11 68% 51%;
+    --secondary-foreground: 0 0% 100%;
+    --accent: 137 33% 40%;
+    --accent-foreground: 37 43% 94%;
+    --muted: 30 10% 18%;
+    --muted-foreground: 34 15% 65%;
+    --destructive: 0 72% 45%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 30 10% 22%;
+    --input: 30 10% 22%;
+    --ring: 79 50% 48%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+  }
+  h1, h2, h3, h4 {
+    @apply font-display;
+  }
+}
+
+/* Subtle paper texture via layered gradients */
+.bg-paper {
+  background-color: hsl(var(--background));
+  background-image:
+    radial-gradient(hsl(var(--border) / 0.35) 0.5px, transparent 0.5px);
+  background-size: 18px 18px;
+}
+
+.card-shadow {
+  box-shadow: 0 1px 2px hsl(30 15% 10% / 0.04), 0 8px 24px hsl(30 15% 10% / 0.06);
+}

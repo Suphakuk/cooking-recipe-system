@@ -1,0 +1,242 @@
+// ============================================================
+// Cooking Recipe Recommendation System - Prisma Schema
+// Database: PostgreSQL (Neon / any Postgres)
+// ============================================================
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ------------------------------------------------------------
+// Roles & Users
+// ------------------------------------------------------------
+model Role {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(50) // ADMIN, USER
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  users User[]
+
+  @@map("roles")
+}
+
+model User {
+  id           Int       @id @default(autoincrement())
+  name         String    @db.VarChar(120)
+  email        String    @unique @db.VarChar(160)
+  password     String    @db.VarChar(255)
+  avatarUrl    String?   @map("avatar_url") @db.VarChar(500)
+  isActive     Boolean   @default(true) @map("is_active")
+  roleId       Int       @map("role_id")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  role          Role           @relation(fields: [roleId], references: [id])
+  refreshTokens RefreshToken[]
+  recipes       Recipe[]       @relation("RecipeAuthor")
+  favorites     Favorite[]
+  detections    Detection[]
+  reviews       Review[]
+
+  @@index([roleId])
+  @@map("users")
+}
+
+model RefreshToken {
+  id        Int      @id @default(autoincrement())
+  token     String   @unique @db.VarChar(500)
+  userId    Int      @map("user_id")
+  expiresAt DateTime @map("expires_at")
+  revoked   Boolean  @default(false)
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("refresh_tokens")
+}
+
+// ------------------------------------------------------------
+// Ingredients & Categories
+// ------------------------------------------------------------
+model Category {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique @db.VarChar(100)
+  slug        String   @unique @db.VarChar(120)
+  description String?  @db.VarChar(255)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  recipes RecipeCategory[]
+
+  @@map("categories")
+}
+
+model Ingredient {
+  id        Int      @id @default(autoincrement())
+  name      String   @unique @db.VarChar(120)
+  nameEn    String?  @map("name_en") @db.VarChar(120)
+  unit      String?  @db.VarChar(30) // g, ml, ชิ้น, ช้อนโต๊ะ ...
+  imageUrl  String?  @map("image_url") @db.Text // base64 data URL or external URL
+  isActive  Boolean  @default(true) @map("is_active")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  recipeIngredients RecipeIngredient[]
+  detectionItems    DetectionItem[]
+
+  @@map("ingredients")
+}
+
+// ------------------------------------------------------------
+// Recipes
+// ------------------------------------------------------------
+enum Difficulty {
+  EASY
+  MEDIUM
+  HARD
+}
+
+model Recipe {
+  id           Int        @id @default(autoincrement())
+  title        String     @db.VarChar(200)
+  slug         String     @unique @db.VarChar(220)
+  description  String?    @db.Text
+  instructions String     @db.Text // steps, can be markdown/JSON string
+  imageUrl     String?    @map("image_url") @db.Text // stores base64 data URL or external URL
+  servings     Int        @default(1)
+  cookMinutes  Int        @default(0) @map("cook_minutes")
+  prepMinutes  Int        @default(0) @map("prep_minutes")
+  difficulty   Difficulty @default(EASY)
+  calories     Int?
+  isPublished  Boolean    @default(true) @map("is_published")
+  views        Int        @default(0)
+  authorId     Int?       @map("author_id")
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
+
+  author            User?              @relation("RecipeAuthor", fields: [authorId], references: [id], onDelete: SetNull)
+  ingredients       RecipeIngredient[]
+  categories        RecipeCategory[]
+  favorites         Favorite[]
+  reviews           Review[]
+
+  @@index([authorId])
+  @@index([difficulty])
+  @@map("recipes")
+}
+
+model RecipeIngredient {
+  id           Int     @id @default(autoincrement())
+  recipeId     Int     @map("recipe_id")
+  ingredientId Int     @map("ingredient_id")
+  quantity     Float   @default(0)
+  unit         String? @db.VarChar(30)
+  optional     Boolean @default(false)
+  note         String? @db.VarChar(255)
+
+  recipe     Recipe     @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  ingredient Ingredient @relation(fields: [ingredientId], references: [id], onDelete: Cascade)
+
+  @@unique([recipeId, ingredientId])
+  @@index([ingredientId])
+  @@map("recipe_ingredients")
+}
+
+model RecipeCategory {
+  recipeId   Int @map("recipe_id")
+  categoryId Int @map("category_id")
+
+  recipe   Recipe   @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([recipeId, categoryId])
+  @@map("recipe_categories")
+}
+
+// ------------------------------------------------------------
+// Favorites & Reviews
+// ------------------------------------------------------------
+model Favorite {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  recipeId  Int      @map("recipe_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+  @@index([recipeId])
+  @@map("favorites")
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  recipeId  Int      @map("recipe_id")
+  rating    Int      @default(5) // 1..5
+  comment   String?  @db.Text
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+  @@index([recipeId])
+  @@map("reviews")
+}
+
+// ------------------------------------------------------------
+// AI Detection (Mock now, real model later)
+// ------------------------------------------------------------
+enum DetectionStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+model Detection {
+  id            Int             @id @default(autoincrement())
+  userId        Int?            @map("user_id")
+  imageUrl      String          @map("image_url") @db.Text // base64 data URL or external URL
+  status        DetectionStatus @default(PENDING)
+  modelName     String?         @map("model_name") @db.VarChar(80) // e.g. "mock-yolo-v1"
+  processMs     Int?            @map("process_ms")
+  rawResult     Json?           @map("raw_result") // full model output
+  createdAt     DateTime        @default(now()) @map("created_at")
+
+  user  User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  items DetectionItem[]
+
+  @@index([userId])
+  @@map("detections")
+}
+
+model DetectionItem {
+  id           Int     @id @default(autoincrement())
+  detectionId  Int     @map("detection_id")
+  ingredientId Int?    @map("ingredient_id")
+  label        String  @db.VarChar(120) // detected class name
+  confidence   Float   @default(0)
+  bboxX        Float?  @map("bbox_x")
+  bboxY        Float?  @map("bbox_y")
+  bboxW        Float?  @map("bbox_w")
+  bboxH        Float?  @map("bbox_h")
+
+  detection  Detection   @relation(fields: [detectionId], references: [id], onDelete: Cascade)
+  ingredient Ingredient? @relation(fields: [ingredientId], references: [id], onDelete: SetNull)
+
+  @@index([detectionId])
+  @@index([ingredientId])
+  @@map("detection_items")
+}

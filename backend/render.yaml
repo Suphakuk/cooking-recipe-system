@@ -1,0 +1,38 @@
+# Render Blueprint (optional convenience)
+# ------------------------------------------------------------
+# You can deploy the backend by pointing Render at this repo, or set it up
+# manually via the dashboard (see docs/DEPLOY.md). This file documents the
+# settings so they're reproducible.
+#
+# Note: the root of the backend service is the `backend/` folder.
+
+services:
+  - type: web
+    name: cooking-recipe-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/v1/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: API_PREFIX
+        value: /api/v1
+      - key: DATABASE_URL
+        sync: false # set this in the dashboard (your Neon connection string)
+      - key: CLIENT_URL
+        sync: false # set this to your Vercel URL after the frontend is deployed
+      - key: JWT_ACCESS_SECRET
+        generateValue: true
+      - key: JWT_REFRESH_SECRET
+        generateValue: true
+      - key: JWT_ACCESS_EXPIRES
+        value: 15m
+      - key: JWT_REFRESH_EXPIRES
+        value: 7d
+      - key: MAX_FILE_SIZE_MB
+        value: "5"
+      - key: MOCK_AI_ENABLED
+        value: "true"
