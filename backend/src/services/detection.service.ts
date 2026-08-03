@@ -73,11 +73,22 @@ export const DetectionService = {
           name: it.ingredient!.name,
           nameEn: it.ingredient!.nameEn,
           confidence: it.confidence,
+          bbox:
+            it.bboxX !== null && it.bboxY !== null && it.bboxW !== null && it.bboxH !== null
+              ? { x: it.bboxX, y: it.bboxY, w: it.bboxW, h: it.bboxH }
+              : null,
         }));
 
       const unmatchedLabels = updated.items
         .filter((it) => !it.ingredient)
-        .map((it) => ({ label: it.label, confidence: it.confidence }));
+        .map((it) => ({
+          label: it.label,
+          confidence: it.confidence,
+          bbox:
+            it.bboxX !== null && it.bboxY !== null && it.bboxW !== null && it.bboxH !== null
+              ? { x: it.bboxX, y: it.bboxY, w: it.bboxW, h: it.bboxH }
+              : null,
+        }));
 
       return {
         detectionId: updated.id,

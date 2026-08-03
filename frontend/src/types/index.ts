@@ -90,8 +90,13 @@ export interface DetectionResult {
     name: string;
     nameEn?: string | null;
     confidence: number;
+    bbox?: { x: number; y: number; w: number; h: number } | null;
   }[];
-  unmatchedLabels: { label: string; confidence: number }[];
+  unmatchedLabels: {
+    label: string;
+    confidence: number;
+    bbox?: { x: number; y: number; w: number; h: number } | null;
+  }[];
 }
 
 export interface DashboardStats {
