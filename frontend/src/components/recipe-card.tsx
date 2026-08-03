@@ -13,7 +13,7 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
   return (
     <Link
       href={`/recipes/${recipe.slug}`}
-      className="group flex flex-col overflow-hidden rounded-lg border border-border bg-card card-shadow transition-all hover:-translate-y-1 hover:shadow-lg"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-border bg-card card-shadow transition-all hover:-translate-y-1 hover:shadow-lg"
     >
       <div className="relative aspect-[4/3] overflow-hidden bg-muted">
         {img ? (
@@ -34,7 +34,7 @@ export function RecipeCard({ recipe }: { recipe: Recipe }) {
       </div>
 
       <div className="flex flex-1 flex-col gap-2 p-4">
-        <h3 className="font-display text-lg font-semibold leading-tight line-clamp-1 group-hover:text-primary">
+        <h3 className="font-display text-lg font-medium leading-tight line-clamp-1 group-hover:text-primary">
           {recipe.title}
         </h3>
         {recipe.description && (

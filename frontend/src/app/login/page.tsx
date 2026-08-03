@@ -55,7 +55,7 @@ export default function LoginPage() {
         </button>
 
         <Link href="/" className="mb-6 flex items-center justify-center gap-2">
-          <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <span className="flex h-10 w-10 items-center justify-center rounded-[50%_50%_50%_6px] bg-primary text-primary-foreground">
             <ChefHat className="h-5 w-5" />
           </span>
           <span className="font-display text-2xl font-semibold">ครัวเปิดตู้</span>

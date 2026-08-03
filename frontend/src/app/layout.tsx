@@ -1,17 +1,19 @@
 import type { Metadata } from 'next';
-import { Fraunces, Plus_Jakarta_Sans } from 'next/font/google';
+import { Jost, Caveat } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/providers';
 
-const fraunces = Fraunces({
+const jost = Jost({
   subsets: ['latin'],
-  variable: '--font-fraunces',
+  weight: ['300', '400', '500', '600'],
+  variable: '--font-jost',
   display: 'swap',
 });
 
-const jakarta = Plus_Jakarta_Sans({
+const caveat = Caveat({
   subsets: ['latin'],
-  variable: '--font-jakarta',
+  weight: ['600'],
+  variable: '--font-caveat',
   display: 'swap',
 });
 
@@ -22,7 +24,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="th" className={`${fraunces.variable} ${jakarta.variable}`}>
+    <html lang="th" className={`${jost.variable} ${caveat.variable}`}>
       <body className="bg-paper min-h-screen">
         <Providers>{children}</Providers>
       </body>

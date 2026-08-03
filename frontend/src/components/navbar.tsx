@@ -49,10 +49,10 @@ export function Navbar() {
     <header className="sticky top-0 z-40 border-b border-border bg-background/85 backdrop-blur">
       <div className="container flex h-16 items-center justify-between gap-4">
         <Link href="/" className="flex items-center gap-2">
-          <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
+          <span className="flex h-9 w-9 items-center justify-center rounded-[50%_50%_50%_6px] bg-primary text-primary-foreground">
             <ChefHat className="h-5 w-5" />
           </span>
-          <span className="font-display text-xl font-semibold tracking-tight">ครัวเปิดตู้</span>
+          <span className="font-display text-xl font-medium tracking-tight">ครัวเปิดตู้</span>
         </Link>
 
         <nav className="hidden items-center gap-1 md:flex">

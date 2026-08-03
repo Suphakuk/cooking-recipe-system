@@ -4,58 +4,58 @@
 
 @layer base {
   :root {
-    /* Market Kitchen palette (HSL) */
-    --background: 37 43% 96%;        /* #FBF7F0 warm paper */
-    --foreground: 30 15% 10%;        /* #1F1B16 ink */
+    /* Botanical x Retro palette (HSL) — mustard cream + brick red + gold */
+    --background: 43 58% 85%;        /* #EFE3C4 mustard cream */
+    --foreground: 27 36% 12%;        /* #2A1E14 dark ink */
 
-    --card: 0 0% 100%;
-    --card-foreground: 30 15% 10%;
+    --card: 40 60% 96%;              /* #FFF9EC warm white */
+    --card-foreground: 27 36% 12%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 30 15% 10%;
+    --popover: 40 60% 96%;
+    --popover-foreground: 27 36% 12%;
 
-    --primary: 137 33% 27%;          /* #2F5D3A herb green */
-    --primary-foreground: 37 43% 96%;
+    --primary: 13 71% 42%;           /* #B5401F brick red */
+    --primary-foreground: 43 58% 95%;
 
-    --secondary: 11 68% 51%;         /* #D6482E tomato */
-    --secondary-foreground: 0 0% 100%;
+    --secondary: 42 68% 54%;         /* #D9A93B mustard gold */
+    --secondary-foreground: 27 36% 12%;
 
-    --accent: 79 50% 48%;            /* #8FB93F lime */
-    --accent-foreground: 30 15% 10%;
+    --accent: 30 45% 88%;            /* #F3E3BE tan badge */
+    --accent-foreground: 28 60% 32%; /* #8E5A1E badge text */
 
-    --muted: 34 25% 90%;
-    --muted-foreground: 30 10% 40%;
+    --muted: 35 40% 90%;
+    --muted-foreground: 30 22% 38%;
 
-    --destructive: 0 72% 45%;
+    --destructive: 355 65% 40%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 30 25% 82%;            /* clay border */
-    --input: 30 25% 82%;
-    --ring: 137 33% 27%;
+    --border: 35 40% 78%;            /* #E4D3A4 tan border */
+    --input: 35 40% 78%;
+    --ring: 13 71% 42%;
 
-    --radius: 0.75rem;
+    --radius: 1.125rem;
   }
 
   .dark {
-    --background: 30 15% 8%;
-    --foreground: 37 43% 94%;
-    --card: 30 14% 11%;
-    --card-foreground: 37 43% 94%;
-    --popover: 30 14% 11%;
-    --popover-foreground: 37 43% 94%;
-    --primary: 79 50% 48%;
-    --primary-foreground: 30 15% 10%;
-    --secondary: 11 68% 51%;
-    --secondary-foreground: 0 0% 100%;
-    --accent: 137 33% 40%;
-    --accent-foreground: 37 43% 94%;
-    --muted: 30 10% 18%;
-    --muted-foreground: 34 15% 65%;
-    --destructive: 0 72% 45%;
+    --background: 27 25% 10%;
+    --foreground: 43 40% 92%;
+    --card: 27 20% 14%;
+    --card-foreground: 43 40% 92%;
+    --popover: 27 20% 14%;
+    --popover-foreground: 43 40% 92%;
+    --primary: 42 68% 54%;
+    --primary-foreground: 27 25% 10%;
+    --secondary: 13 71% 42%;
+    --secondary-foreground: 43 40% 92%;
+    --accent: 27 20% 22%;
+    --accent-foreground: 42 60% 70%;
+    --muted: 27 15% 20%;
+    --muted-foreground: 35 20% 65%;
+    --destructive: 355 65% 40%;
     --destructive-foreground: 0 0% 100%;
-    --border: 30 10% 22%;
-    --input: 30 10% 22%;
-    --ring: 79 50% 48%;
+    --border: 27 15% 24%;
+    --input: 27 15% 24%;
+    --ring: 42 68% 54%;
   }
 }
 
@@ -65,6 +65,7 @@
   }
   body {
     @apply bg-background text-foreground font-sans antialiased;
+    font-weight: 300;
   }
   h1, h2, h3, h4 {
     @apply font-display;
@@ -75,10 +76,14 @@
 .bg-paper {
   background-color: hsl(var(--background));
   background-image:
-    radial-gradient(hsl(var(--border) / 0.35) 0.5px, transparent 0.5px);
+    radial-gradient(hsl(var(--foreground) / 0.06) 0.5px, transparent 0.5px);
   background-size: 18px 18px;
 }
 
 .card-shadow {
-  box-shadow: 0 1px 2px hsl(30 15% 10% / 0.04), 0 8px 24px hsl(30 15% 10% / 0.06);
+  box-shadow: 0 1px 2px hsl(27 36% 12% / 0.05), 0 8px 24px hsl(27 36% 12% / 0.08);
+}
+
+.font-script {
+  font-family: var(--font-caveat), cursive;
 }

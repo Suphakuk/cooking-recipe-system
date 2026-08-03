@@ -18,7 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
         position="top-center"
         richColors
         toastOptions={{
-          style: { fontFamily: 'var(--font-jakarta)' },
+          style: { fontFamily: 'var(--font-jost)' },
         }}
       />
     </>

@@ -28,14 +28,13 @@ export default function HomePage() {
       <section className="relative overflow-hidden">
         <div className="container grid gap-10 py-16 md:grid-cols-2 md:py-24">
           <div className="flex flex-col justify-center gap-6 animate-fade-up">
-            <span className="inline-flex w-fit items-center gap-2 rounded-full border border-border bg-card px-3 py-1 text-sm text-muted-foreground">
-              <Sparkles className="h-4 w-4 text-accent" />
-              เปิดตู้เย็น แล้วให้เราคิดเมนูให้
+            <span className="font-script w-fit text-2xl text-primary">
+              จากตู้เย็นสู่โต๊ะอาหาร
             </span>
-            <h1 className="font-display text-4xl font-semibold leading-[1.1] md:text-6xl">
+            <h1 className="font-display text-4xl font-medium leading-[1.1] md:text-6xl">
               มีของอยู่ในตู้
               <br />
-              <span className="text-primary">ทำอะไรกินดี?</span>
+              <span className="text-primary italic">ทำอะไรกินดี?</span>
             </h1>
             <p className="max-w-md text-lg text-muted-foreground">
               เลือกวัตถุดิบที่มีอยู่ แล้วเราจะแนะนำเมนูที่ทำได้ทันที พร้อมบอกว่าขาดอะไรบ้าง
