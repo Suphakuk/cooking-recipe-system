@@ -18,6 +18,12 @@ import { Camera, ImagePlus, Loader2, RotateCcw, Check, Sparkles } from 'lucide-r
 interface Props {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** "navigate" (default): after confirming, go to /recommend with detected ids.
+   *  "accumulate": call onDetected with the ids instead, then reset for another scan
+   *  (used on the recommend page itself, so scanning multiple photos keeps adding
+   *  ingredients to the board instead of leaving the page). */
+  mode?: 'navigate' | 'accumulate';
+  onDetected?: (ids: number[]) => void;
 }
 
 type Box = {
@@ -28,7 +34,7 @@ type Box = {
   matched: boolean;
 };
 
-export function ScanIngredientsDialog({ open, onOpenChange }: Props) {
+export function ScanIngredientsDialog({ open, onOpenChange, mode = 'navigate', onDetected }: Props) {
   const router = useRouter();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -82,6 +88,16 @@ export function ScanIngredientsDialog({ open, onOpenChange }: Props) {
     } else {
       router.push(`/recommend?detected=${ids.join(',')}`);
     }
+  };
+
+  const addToBoard = () => {
+    const ids = result?.matchedIngredients.map((m) => m.id) ?? [];
+    if (ids.length > 0) {
+      onDetected?.(ids);
+      toast.success(`เพิ่ม ${ids.length} วัตถุดิบลงเขียงแล้ว`);
+    }
+    // reset so they can scan another photo right away, without closing the dialog
+    reset();
   };
 
   const boxes: Box[] = result
@@ -183,10 +199,21 @@ export function ScanIngredientsDialog({ open, onOpenChange }: Props) {
               <Button variant="outline" className="flex-1" onClick={reset}>
                 <RotateCcw className="h-4 w-4" /> สแกนใหม่
               </Button>
-              <Button className="flex-1" onClick={goToRecommend}>
-                <Sparkles className="h-4 w-4" /> ไปแนะนำเมนู
-              </Button>
+              {mode === 'accumulate' ? (
+                <Button className="flex-1" onClick={addToBoard} disabled={result.matchedIngredients.length === 0}>
+                  <Check className="h-4 w-4" /> เพิ่มลงเขียง
+                </Button>
+              ) : (
+                <Button className="flex-1" onClick={goToRecommend}>
+                  <Sparkles className="h-4 w-4" /> ไปแนะนำเมนู
+                </Button>
+              )}
             </div>
+            {mode === 'accumulate' && (
+              <p className="text-center text-xs text-muted-foreground">
+                สแกนได้หลายรูปต่อกัน — กด &quot;เพิ่มลงเขียง&quot; แล้วถ่าย/อัปโหลดรูปต่อไปได้เลย
+              </p>
+            )}
           </div>
         ) : preview ? (
           <div className="space-y-4">

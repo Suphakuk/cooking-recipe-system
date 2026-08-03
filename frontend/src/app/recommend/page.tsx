@@ -1,10 +1,11 @@
 'use client';
 
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { SiteShell } from '@/components/site-shell';
+import { ScanIngredientsDialog } from '@/components/scan-ingredients-dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
@@ -12,7 +13,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { api, getErrorMessage } from '@/lib/api';
 import { resolveImage, formatMinutes, difficultyLabel } from '@/lib/utils';
-import type { Ingredient, RecommendResult, DetectionResult } from '@/types';
+import type { Ingredient, RecommendResult } from '@/types';
 import {
   Sparkles,
   Search,
@@ -34,8 +35,7 @@ function RecommendPageInner() {
   const [matchMode, setMatchMode] = useState<'any' | 'all'>('any');
   const [results, setResults] = useState<RecommendResult[] | null>(null);
   const [loadingResults, setLoadingResults] = useState(false);
-  const [detecting, setDetecting] = useState(false);
-  const fileRef = useRef<HTMLInputElement>(null);
+  const [scanOpen, setScanOpen] = useState(false);
 
   useEffect(() => {
     api
@@ -111,35 +111,16 @@ function RecommendPageInner() {
     }
   };
 
-  const handleDetect = async (file: File) => {
-    setDetecting(true);
-    try {
-      const form = new FormData();
-      form.append('image', file);
-      const { data } = await api.post<{ data: DetectionResult }>('/detections', form, {
-        headers: { 'Content-Type': 'multipart/form-data' },
-      });
-      const detected = data.data.matchedIngredients;
-      if (detected.length === 0) {
-        toast.info('ไม่พบวัตถุดิบที่รู้จักในรูป ลองเลือกเองได้');
-      } else {
-        setSelected((prev) => {
-          const next = new Map(prev);
-          for (const d of detected) {
-            const full = ingredients.find((i) => i.id === d.id);
-            if (full) next.set(full.id, full);
-          }
-          return next;
-        });
-        toast.success(`ตรวจพบ ${detected.length} วัตถุดิบ (โมเดลจำลอง)`);
+  const handleScanDetected = (ids: number[]) => {
+    setSelected((prev) => {
+      const next = new Map(prev);
+      for (const id of ids) {
+        const full = ingredients.find((i) => i.id === id);
+        if (full) next.set(full.id, full);
       }
-      setResults(null);
-    } catch (err) {
-      toast.error(getErrorMessage(err));
-    } finally {
-      setDetecting(false);
-      if (fileRef.current) fileRef.current.value = '';
-    }
+      return next;
+    });
+    setResults(null);
   };
 
   const selectedList = Array.from(selected.values());
@@ -168,19 +149,8 @@ function RecommendPageInner() {
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              <input
-                ref={fileRef}
-                type="file"
-                accept="image/*"
-                className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleDetect(e.target.files[0])}
-              />
-              <Button
-                variant="outline"
-                onClick={() => fileRef.current?.click()}
-                disabled={detecting}
-              >
-                {detecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <ScanLine className="h-4 w-4" />}
+              <Button variant="outline" onClick={() => setScanOpen(true)}>
+                <ScanLine className="h-4 w-4" />
                 สแกนจากรูป
               </Button>
             </div>
@@ -296,6 +266,13 @@ function RecommendPageInner() {
           </div>
         )}
       </div>
+
+      <ScanIngredientsDialog
+        open={scanOpen}
+        onOpenChange={setScanOpen}
+        mode="accumulate"
+        onDetected={handleScanDetected}
+      />
     </SiteShell>
   );
 }
