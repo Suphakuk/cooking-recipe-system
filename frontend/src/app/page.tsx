@@ -2,17 +2,31 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { SiteShell } from '@/components/site-shell';
 import { Button } from '@/components/ui/button';
 import { RecipeCard } from '@/components/recipe-card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { ScanIngredientsDialog } from '@/components/scan-ingredients-dialog';
+import { useAuth } from '@/lib/store';
 import { api } from '@/lib/api';
 import type { Recipe } from '@/types';
 import { Sparkles, Search, ScanLine, ArrowRight } from 'lucide-react';
 
 export default function HomePage() {
+  const router = useRouter();
+  const { user } = useAuth();
   const [recipes, setRecipes] = useState<Recipe[]>([]);
   const [loading, setLoading] = useState(true);
+  const [scanOpen, setScanOpen] = useState(false);
+
+  const handleScanClick = () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    setScanOpen(true);
+  };
 
   useEffect(() => {
     api
@@ -45,6 +59,9 @@ export default function HomePage() {
                 <Link href="/recommend">
                   เริ่มเลือกวัตถุดิบ <ArrowRight className="h-4 w-4" />
                 </Link>
+              </Button>
+              <Button size="lg" variant="secondary" onClick={handleScanClick}>
+                <ScanLine className="h-4 w-4" /> สแกนวัตถุดิบ
               </Button>
               <Button size="lg" variant="outline" asChild>
                 <Link href="/recipes">ดูสูตรทั้งหมด</Link>
@@ -137,6 +154,8 @@ export default function HomePage() {
           <p className="text-muted-foreground">ยังไม่มีสูตรอาหาร — เข้าสู่ระบบแอดมินเพื่อเพิ่มสูตร</p>
         )}
       </section>
+
+      <ScanIngredientsDialog open={scanOpen} onOpenChange={setScanOpen} />
     </SiteShell>
   );
 }

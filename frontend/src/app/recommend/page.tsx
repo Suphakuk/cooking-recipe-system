@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { SiteShell } from '@/components/site-shell';
 import { Button } from '@/components/ui/button';
@@ -24,7 +25,8 @@ import {
   AlertCircle,
 } from 'lucide-react';
 
-export default function RecommendPage() {
+function RecommendPageInner() {
+  const searchParams = useSearchParams();
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [loadingIngredients, setLoadingIngredients] = useState(true);
   const [selected, setSelected] = useState<Map<number, Ingredient>>(new Map());
@@ -42,6 +44,27 @@ export default function RecommendPage() {
       .catch(() => toast.error('โหลดวัตถุดิบไม่สำเร็จ'))
       .finally(() => setLoadingIngredients(false));
   }, []);
+
+  // Pre-select ingredients that were detected via the homepage scan popup,
+  // passed along as ?detected=1,2,3
+  useEffect(() => {
+    if (loadingIngredients || ingredients.length === 0) return;
+    const detected = searchParams.get('detected');
+    if (!detected) return;
+    const ids = detected
+      .split(',')
+      .map((s) => parseInt(s, 10))
+      .filter((n) => !isNaN(n));
+    if (ids.length === 0) return;
+    setSelected((prev) => {
+      const next = new Map(prev);
+      for (const id of ids) {
+        const ing = ingredients.find((i) => i.id === id);
+        if (ing) next.set(ing.id, ing);
+      }
+      return next;
+    });
+  }, [loadingIngredients, ingredients, searchParams]);
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -274,6 +297,14 @@ export default function RecommendPage() {
         )}
       </div>
     </SiteShell>
+  );
+}
+
+export default function RecommendPage() {
+  return (
+    <Suspense fallback={null}>
+      <RecommendPageInner />
+    </Suspense>
   );
 }
 
