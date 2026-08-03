@@ -2,7 +2,7 @@
 
 ระบบแนะนำเมนูอาหารจากวัตถุดิบที่มีอยู่ ผู้ใช้เลือกวัตถุดิบที่มีในตู้เย็น (หรืออัปโหลดรูปให้ระบบช่วยระบุ) แล้วระบบจะแนะนำเมนูที่ทำได้ พร้อมบอกว่าขาดวัตถุดิบอะไรบ้าง
 
-> **หมายเหตุเรื่อง AI:** ส่วนตรวจจับวัตถุดิบจากรูปภาพ (image detection) เป็น **โมเดลจำลอง (mock)** ตามที่ตกลงไว้ โครงสร้างถูกออกแบบให้เปลี่ยนไปใช้โมเดลจริง (เช่น YOLO/CNN ผ่าน HTTP) ได้โดยแก้ไขไฟล์เดียว ดูรายละเอียดในหัวข้อ [การเชื่อมต่อ AI จริง](#-การเชื่อมต่อ-ai-จริงภายหลัง)
+> **หมายเหตุเรื่อง AI:** ส่วนตรวจจับวัตถุดิบจากรูปภาพรองรับ 2 โหมด — **โมเดลจำลอง (mock)** สำหรับพัฒนา/เดโมเร็วๆ และ **YOLOv8 ของจริง** (ผ่าน `yolo-service/`) สำหรับการตรวจจับจริง ดูรายละเอียดและข้อจำกัดที่ [`docs/AI-MODEL.md`](docs/AI-MODEL.md)
 
 > ☁️ **อยากขึ้น cloud ฟรี (ไม่ต้องเปิด XAMPP/MySQL)?** ดูคู่มือละเอียดทีละขั้นที่ [`docs/DEPLOY.md`](./docs/DEPLOY.md) — ใช้ Neon + Render + Vercel ฟรีทั้งหมด
 
@@ -169,18 +169,14 @@ Frontend จะรันที่ **http://localhost:3000**
 
 ---
 
-## 🤖 การเชื่อมต่อ AI จริง (ภายหลัง)
+## 🤖 การเชื่อมต่อ AI จริง
 
-ส่วนตรวจจับวัตถุดิบถูกแยกไว้ที่ **`backend/src/mock/detection.provider.ts`** เบื้องหลัง interface `IDetectionProvider` เพียงตัวเดียว
+ส่วนตรวจจับวัตถุดิบอยู่ที่ **`backend/src/mock/detection.provider.ts`** เบื้องหลัง interface `IDetectionProvider` เพียงตัวเดียว มี 2 provider ให้เลือก:
 
-ปัจจุบัน `MockDetectionProvider` จะสุ่มคืนป้ายวัตถุดิบ (พร้อม confidence + bounding box) เพื่อจำลองผลลัพธ์
+- `MockDetectionProvider` — สุ่มคืนป้ายวัตถุดิบ (พร้อม confidence + bounding box) ใช้ตอนพัฒนา/เดโม
+- `YoloHttpProvider` — เรียก YOLOv8 **ของจริง** ที่รันอยู่ใน `yolo-service/` ผ่าน HTTP
 
-เมื่อพร้อมใช้โมเดลจริง:
-1. เขียน class ใหม่ที่ implement `IDetectionProvider` (มีตัวอย่าง `YoloHttpProvider` แบบ comment ไว้ให้ในไฟล์เดียวกัน) — ให้ยิง HTTP ไปยัง service ของโมเดล เช่น YOLO/CNN
-2. เปลี่ยนบรรทัด export `detectionProvider` ให้ชี้ไปที่ class ใหม่
-3. ระบบจะจับคู่ป้ายภาษาอังกฤษที่โมเดลคืนกับฟิลด์ `nameEn` ของวัตถุดิบในฐานข้อมูลโดยอัตโนมัติ
-
-ไม่ต้องแก้ controller, service อื่น หรือ frontend เลย
+สลับได้ด้วย environment variable `DETECTION_PROVIDER=yolo` + `YOLO_SERVICE_URL` (ดูวิธีรันและข้อจำกัดที่ [`docs/AI-MODEL.md`](docs/AI-MODEL.md)) ไม่ต้องแก้ controller, service อื่น หรือ frontend เลย ระบบจับคู่ป้ายภาษาอังกฤษที่โมเดลคืนกับฟิลด์ `nameEn` ของวัตถุดิบในฐานข้อมูลโดยอัตโนมัติ
 
 ---
 
@@ -189,6 +185,7 @@ Frontend จะรันที่ **http://localhost:3000**
 - [`docs/DEPLOY.md`](./docs/DEPLOY.md) — ☁️ คู่มือขึ้น cloud ฟรีแบบละเอียด (Neon + Render + Vercel)
 - [`docs/ER-DIAGRAM.md`](./docs/ER-DIAGRAM.md) — แผนผังฐานข้อมูล (Mermaid ER diagram)
 - [`docs/API.md`](./docs/API.md) — รายการ API endpoints ทั้งหมด
+- [`docs/AI-MODEL.md`](./docs/AI-MODEL.md) — 🤖 YOLOv8 จริง + แผนงานวิจัยเปรียบเทียบ YOLO vs CNN
 
 ---
 

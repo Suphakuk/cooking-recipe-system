@@ -95,32 +95,50 @@ export class MockDetectionProvider implements IDetectionProvider {
 }
 
 // ------------------------------------------------------------
-// Example real provider stub (commented — for future use)
+// Real provider: calls the YOLOv8 microservice in /yolo-service
 // ------------------------------------------------------------
-/*
 export class YoloHttpProvider implements IDetectionProvider {
-  public readonly name = 'yolov8-http';
+  public readonly name = 'yolov8n-coco-pretrained';
   constructor(private endpoint: string) {}
 
   async detect(image: Buffer): Promise<DetectionResult> {
-    const start = Date.now();
     const form = new FormData();
-    form.append('image', new Blob([image]), 'upload.jpg');
-    const res = await fetch(this.endpoint, { method: 'POST', body: form as any });
-    const data = await res.json();
+    form.append('file', new Blob([image]), 'upload.jpg');
+
+    const res = await fetch(`${this.endpoint}/detect`, { method: 'POST', body: form as any });
+    if (!res.ok) {
+      throw new Error(`YOLO service responded with ${res.status}`);
+    }
+    const data = (await res.json()) as {
+      modelName: string;
+      processMs: number;
+      objects: { label: string; confidence: number; bbox: { x: number; y: number; w: number; h: number } }[];
+    };
+
     return {
-      modelName: this.name,
-      processMs: Date.now() - start,
-      objects: data.predictions.map((p: any) => ({
-        label: p.class,
-        confidence: p.confidence,
-        bbox: { x: p.x, y: p.y, w: p.w, h: p.h },
-      })),
+      modelName: data.modelName,
+      processMs: data.processMs,
+      objects: data.objects,
       raw: data,
     };
   }
 }
-*/
 
-// The single provider used across the app. Swap this line to go live.
-export const detectionProvider: IDetectionProvider = new MockDetectionProvider();
+// ------------------------------------------------------------
+// Provider selection
+// ------------------------------------------------------------
+// Set DETECTION_PROVIDER=yolo and YOLO_SERVICE_URL=http://host:8000 in .env
+// to use the real YOLOv8 model (see /yolo-service). Defaults to the mock so
+// existing deployments keep working until the Python service is running.
+function buildProvider(): IDetectionProvider {
+  if (process.env.DETECTION_PROVIDER === 'yolo') {
+    const endpoint = process.env.YOLO_SERVICE_URL;
+    if (!endpoint) {
+      throw new Error('YOLO_SERVICE_URL must be set when DETECTION_PROVIDER=yolo');
+    }
+    return new YoloHttpProvider(endpoint);
+  }
+  return new MockDetectionProvider();
+}
+
+export const detectionProvider: IDetectionProvider = buildProvider();
