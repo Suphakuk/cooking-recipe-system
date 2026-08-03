@@ -89,6 +89,7 @@ export const createRecipeSchema = z.object({
   description: z.string().max(2000).optional(),
   instructions: z.string().min(1),
   imageUrl: z.string().max(500).optional(),
+  videoUrl: z.string().max(500).optional().or(z.literal('')),
   servings: z.coerce.number().int().positive().default(1),
   cookMinutes: z.coerce.number().int().nonnegative().default(0),
   prepMinutes: z.coerce.number().int().nonnegative().default(0),

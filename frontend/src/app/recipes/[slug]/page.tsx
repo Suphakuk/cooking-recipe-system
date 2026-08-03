@@ -12,7 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/lib/store';
 import { api, getErrorMessage } from '@/lib/api';
-import { resolveImage, formatMinutes, difficultyLabel } from '@/lib/utils';
+import { resolveImage, formatMinutes, difficultyLabel, getYouTubeEmbedUrl } from '@/lib/utils';
 import type { Recipe } from '@/types';
 import {
   Clock,
@@ -23,6 +23,8 @@ import {
   ChefHat,
   Loader2,
   Eye,
+  ThumbsUp,
+  PlayCircle,
 } from 'lucide-react';
 
 export default function RecipeDetailPage() {
@@ -36,6 +38,11 @@ export default function RecipeDetailPage() {
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
 
+  // video like
+  const [videoLiked, setVideoLiked] = useState(false);
+  const [videoLikesCount, setVideoLikesCount] = useState(0);
+  const [videoLikeLoading, setVideoLikeLoading] = useState(false);
+
   // review form
   const [rating, setRating] = useState(5);
   const [comment, setComment] = useState('');
@@ -44,7 +51,11 @@ export default function RecipeDetailPage() {
   useEffect(() => {
     api
       .get(`/recipes/${slug}`)
-      .then((res) => setRecipe(res.data.data))
+      .then((res) => {
+        const r: Recipe = res.data.data;
+        setRecipe(r);
+        setVideoLikesCount(r._count?.videoLikes ?? 0);
+      })
       .catch(() => toast.error('ไม่พบสูตรอาหาร'))
       .finally(() => setLoading(false));
   }, [slug]);
@@ -64,6 +75,33 @@ export default function RecipeDetailPage() {
       toast.error(getErrorMessage(err));
     } finally {
       setFavLoading(false);
+    }
+  };
+
+  const handleVideoLike = async () => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    if (!recipe || videoLikeLoading) return;
+
+    // optimistic update
+    const prevLiked = videoLiked;
+    const prevCount = videoLikesCount;
+    setVideoLiked(!prevLiked);
+    setVideoLikesCount(prevCount + (prevLiked ? -1 : 1));
+    setVideoLikeLoading(true);
+    try {
+      const { data } = await api.post(`/recipes/${recipe.id}/video-like`);
+      setVideoLiked(data.data.liked);
+      setVideoLikesCount(data.data.likesCount);
+    } catch (err) {
+      // revert on failure
+      setVideoLiked(prevLiked);
+      setVideoLikesCount(prevCount);
+      toast.error(getErrorMessage(err));
+    } finally {
+      setVideoLikeLoading(false);
     }
   };
 
@@ -114,6 +152,7 @@ export default function RecipeDetailPage() {
   }
 
   const img = resolveImage(recipe.imageUrl);
+  const videoEmbedUrl = getYouTubeEmbedUrl(recipe.videoUrl);
   const steps = recipe.instructions
     .split('\n')
     .map((s) => s.replace(/^\d+\.\s*/, '').trim())
@@ -137,6 +176,51 @@ export default function RecipeDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Video */}
+        {recipe.videoUrl && (
+          <div className="mb-10">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 font-display text-xl font-semibold">
+                <PlayCircle className="h-5 w-5 text-primary" /> วิดีโอสอนทำ
+              </h2>
+              <Button
+                variant={videoLiked ? 'secondary' : 'outline'}
+                size="sm"
+                onClick={handleVideoLike}
+                disabled={videoLikeLoading}
+              >
+                {videoLikeLoading ? (
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                ) : (
+                  <ThumbsUp className={`h-4 w-4 ${videoLiked ? 'fill-current' : ''}`} />
+                )}
+                ไลก์ {videoLikesCount > 0 && `(${videoLikesCount})`}
+              </Button>
+            </div>
+
+            {videoEmbedUrl ? (
+              <div className="aspect-video overflow-hidden rounded-2xl bg-muted">
+                <iframe
+                  src={videoEmbedUrl}
+                  title={`วิดีโอสอนทำ ${recipe.title}`}
+                  className="h-full w-full"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  allowFullScreen
+                />
+              </div>
+            ) : (
+              <a
+                href={recipe.videoUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center gap-2 rounded-xl border border-border bg-muted/40 p-4 text-sm font-medium text-primary hover:underline"
+              >
+                <PlayCircle className="h-5 w-5" /> เปิดวิดีโอสอนทำในแท็บใหม่
+              </a>
+            )}
+          </div>
+        )}
 
         <div className="grid gap-10 lg:grid-cols-[1fr_340px]">
           {/* Main */}

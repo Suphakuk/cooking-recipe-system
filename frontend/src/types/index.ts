@@ -55,6 +55,7 @@ export interface Recipe {
   description?: string | null;
   instructions: string;
   imageUrl?: string | null;
+  videoUrl?: string | null;
   servings: number;
   cookMinutes: number;
   prepMinutes: number;
@@ -67,7 +68,7 @@ export interface Recipe {
   categories: { category: Category }[];
   ingredients: RecipeIngredient[];
   reviews?: Review[];
-  _count?: { favorites: number; reviews: number };
+  _count?: { favorites: number; reviews: number; videoLikes?: number };
 }
 
 export interface RecommendResult {

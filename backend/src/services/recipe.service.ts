@@ -16,6 +16,7 @@ interface RecipeInput {
   description?: string;
   instructions?: string;
   imageUrl?: string;
+  videoUrl?: string;
   servings?: number;
   cookMinutes?: number;
   prepMinutes?: number;
@@ -30,7 +31,7 @@ const RECIPE_INCLUDE = {
   author: { select: { id: true, name: true, avatarUrl: true } },
   categories: { include: { category: true } },
   ingredients: { include: { ingredient: true } },
-  _count: { select: { favorites: true, reviews: true } },
+  _count: { select: { favorites: true, reviews: true, videoLikes: true } },
 } satisfies Prisma.RecipeInclude;
 
 export const RecipeService = {
@@ -107,6 +108,7 @@ export const RecipeService = {
         description: data.description,
         instructions: data.instructions,
         imageUrl: data.imageUrl,
+        videoUrl: data.videoUrl || null,
         servings: data.servings ?? 1,
         cookMinutes: data.cookMinutes ?? 0,
         prepMinutes: data.prepMinutes ?? 0,
@@ -150,6 +152,7 @@ export const RecipeService = {
           ...(data.description !== undefined ? { description: data.description } : {}),
           ...(data.instructions ? { instructions: data.instructions } : {}),
           ...(data.imageUrl !== undefined ? { imageUrl: data.imageUrl } : {}),
+          ...(data.videoUrl !== undefined ? { videoUrl: data.videoUrl || null } : {}),
           ...(data.servings !== undefined ? { servings: data.servings } : {}),
           ...(data.cookMinutes !== undefined ? { cookMinutes: data.cookMinutes } : {}),
           ...(data.prepMinutes !== undefined ? { prepMinutes: data.prepMinutes } : {}),
@@ -259,6 +262,24 @@ export const RecipeService = {
       prisma.favorite.count({ where: { userId } }),
     ]);
     return { items: rows.map((r) => r.recipe), meta: buildMeta(total, page, limit) };
+  },
+
+  // ---------- Video Likes ----------
+  async toggleVideoLike(userId: number, recipeId: number) {
+    const recipe = await this.getById(recipeId);
+    if (!recipe.videoUrl) {
+      throw ApiError.badRequest('This recipe has no video to like');
+    }
+    const existing = await prisma.videoLike.findUnique({
+      where: { userId_recipeId: { userId, recipeId } },
+    });
+    if (existing) {
+      await prisma.videoLike.delete({ where: { id: existing.id } });
+    } else {
+      await prisma.videoLike.create({ data: { userId, recipeId } });
+    }
+    const likesCount = await prisma.videoLike.count({ where: { recipeId } });
+    return { liked: !existing, likesCount };
   },
 
   // ---------- Reviews ----------

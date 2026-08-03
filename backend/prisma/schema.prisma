@@ -45,6 +45,7 @@ model User {
   favorites     Favorite[]
   detections    Detection[]
   reviews       Review[]
+  videoLikes    VideoLike[]
 
   @@index([roleId])
   @@map("users")
@@ -112,6 +113,7 @@ model Recipe {
   description  String?    @db.Text
   instructions String     @db.Text // steps, can be markdown/JSON string
   imageUrl     String?    @map("image_url") @db.Text // stores base64 data URL or external URL
+  videoUrl     String?    @map("video_url") @db.VarChar(500) // YouTube or other video link
   servings     Int        @default(1)
   cookMinutes  Int        @default(0) @map("cook_minutes")
   prepMinutes  Int        @default(0) @map("prep_minutes")
@@ -128,6 +130,7 @@ model Recipe {
   categories        RecipeCategory[]
   favorites         Favorite[]
   reviews           Review[]
+  videoLikes        VideoLike[]
 
   @@index([authorId])
   @@index([difficulty])
@@ -177,6 +180,20 @@ model Favorite {
   @@unique([userId, recipeId])
   @@index([recipeId])
   @@map("favorites")
+}
+
+model VideoLike {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  recipeId  Int      @map("recipe_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recipe Recipe @relation(fields: [recipeId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, recipeId])
+  @@index([recipeId])
+  @@map("video_likes")
 }
 
 model Review {

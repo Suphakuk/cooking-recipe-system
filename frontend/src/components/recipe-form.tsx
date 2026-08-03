@@ -50,6 +50,7 @@ export function RecipeForm({ recipeId }: Props) {
     cookMinutes: '20',
     difficulty: 'EASY',
     calories: '',
+    videoUrl: '',
     isPublished: true,
   });
   const [selectedCategories, setSelectedCategories] = useState<number[]>([]);
@@ -84,6 +85,7 @@ export function RecipeForm({ recipeId }: Props) {
           cookMinutes: String(r.cookMinutes),
           difficulty: r.difficulty,
           calories: r.calories ? String(r.calories) : '',
+          videoUrl: r.videoUrl ?? '',
           isPublished: r.isPublished,
         });
         setSelectedCategories(r.categories.map((c) => c.category.id));
@@ -142,6 +144,7 @@ export function RecipeForm({ recipeId }: Props) {
       fd.append('cookMinutes', form.cookMinutes);
       fd.append('difficulty', form.difficulty);
       if (form.calories) fd.append('calories', form.calories);
+      fd.append('videoUrl', form.videoUrl.trim());
       fd.append('isPublished', String(form.isPublished));
       fd.append('categoryIds', JSON.stringify(selectedCategories));
       fd.append(
@@ -321,6 +324,24 @@ export function RecipeForm({ recipeId }: Props) {
                 accept="image/*"
                 onChange={(e) => e.target.files?.[0] && handleImage(e.target.files[0])}
               />
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>วิดีโอสอนทำ</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Label htmlFor="videoUrl" className="text-xs">
+                ลิงก์วิดีโอ (YouTube หรืออื่นๆ)
+              </Label>
+              <Input
+                id="videoUrl"
+                placeholder="https://www.youtube.com/watch?v=..."
+                value={form.videoUrl}
+                onChange={(e) => setForm({ ...form, videoUrl: e.target.value })}
+              />
+              <p className="mt-1 text-xs text-muted-foreground">เว้นว่างได้ ถ้าไม่มีวิดีโอสอนทำ</p>
             </CardContent>
           </Card>
 
