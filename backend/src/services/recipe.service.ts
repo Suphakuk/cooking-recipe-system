@@ -232,6 +232,16 @@ export const RecipeService = {
       .sort((a, b) => b.score - a.score)
       .slice(0, limit);
 
+    // Track how often each recipe gets recommended (fire and forget)
+    if (scored.length > 0) {
+      prisma.recipe
+        .updateMany({
+          where: { id: { in: scored.map((r) => r.recipe.id) } },
+          data: { recommendedCount: { increment: 1 } },
+        })
+        .catch(() => undefined);
+    }
+
     return scored;
   },
 
@@ -262,6 +272,20 @@ export const RecipeService = {
       prisma.favorite.count({ where: { userId } }),
     ]);
     return { items: rows.map((r) => r.recipe), meta: buildMeta(total, page, limit) };
+  },
+
+  // Called when a user actually presses play on a recipe's video (not just
+  // viewing the page) — powers the "most-watched videos" dashboard stat.
+  async registerVideoView(recipeId: number) {
+    const recipe = await this.getById(recipeId);
+    if (!recipe.videoUrl) {
+      throw ApiError.badRequest('This recipe has no video');
+    }
+    await prisma.recipe.update({
+      where: { id: recipeId },
+      data: { videoViews: { increment: 1 } },
+    });
+    return { videoViews: recipe.videoViews + 1 };
   },
 
   // ---------- Video Likes ----------

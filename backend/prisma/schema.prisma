@@ -121,6 +121,8 @@ model Recipe {
   calories     Int?
   isPublished  Boolean    @default(true) @map("is_published")
   views        Int        @default(0)
+  videoViews       Int    @default(0) @map("video_views")
+  recommendedCount Int    @default(0) @map("recommended_count")
   authorId     Int?       @map("author_id")
   createdAt    DateTime   @default(now()) @map("created_at")
   updatedAt    DateTime   @updatedAt @map("updated_at")

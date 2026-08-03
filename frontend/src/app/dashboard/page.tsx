@@ -20,7 +20,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { api } from '@/lib/api';
 import { difficultyLabel } from '@/lib/utils';
 import type { DashboardStats } from '@/types';
-import { Users, UtensilsCrossed, Carrot, ScanLine, Star, Heart } from 'lucide-react';
+import { Users, UtensilsCrossed, Carrot, ScanLine, Star, Heart, Sparkles, PlayCircle } from 'lucide-react';
 
 const PIE_COLORS = ['#2F5D3A', '#8FB93F', '#D6482E', '#B8926A'];
 
@@ -181,6 +181,81 @@ export default function DashboardPage() {
               ))}
               {stats.topRecipes.length === 0 && (
                 <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูล</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top scanned ingredients */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <ScanLine className="h-5 w-5 text-primary" /> วัตถุดิบที่ถูกสแกนบ่อยที่สุด
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {stats.topScannedIngredients.map((ing, i) => (
+                <div key={ing.id} className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {i + 1}
+                  </span>
+                  <span className="flex-1 truncate text-sm font-medium">{ing.name}</span>
+                  <span className="text-sm text-muted-foreground">{ing.count} ครั้ง</span>
+                </div>
+              ))}
+              {stats.topScannedIngredients.length === 0 && (
+                <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูลการสแกน</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top recommended recipes */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Sparkles className="h-5 w-5 text-primary" /> เมนูที่แนะนำบ่อยที่สุด
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {stats.topRecommendedRecipes.map((r, i) => (
+                <div key={r.id} className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {i + 1}
+                  </span>
+                  <span className="flex-1 truncate text-sm font-medium">{r.title}</span>
+                  <span className="text-sm text-muted-foreground">{r.recommendedCount} ครั้ง</span>
+                </div>
+              ))}
+              {stats.topRecommendedRecipes.length === 0 && (
+                <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูลการแนะนำ</p>
+              )}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Top watched videos */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <PlayCircle className="h-5 w-5 text-primary" /> วิดีโอที่มีคนดูบ่อย 5 อันดับแรก
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {stats.topWatchedVideos.map((r, i) => (
+                <div key={r.id} className="flex items-center gap-3">
+                  <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10 text-sm font-semibold text-primary">
+                    {i + 1}
+                  </span>
+                  <span className="flex-1 truncate text-sm font-medium">{r.title}</span>
+                  <span className="text-sm text-muted-foreground">{r.videoViews} ครั้ง</span>
+                </div>
+              ))}
+              {stats.topWatchedVideos.length === 0 && (
+                <p className="text-sm text-muted-foreground">ยังไม่มีข้อมูลการดูวิดีโอ</p>
               )}
             </div>
           </CardContent>

@@ -107,6 +107,9 @@ export interface DashboardStats {
   recipesByCategory: { category: string; count: number }[];
   topRecipes: { id: number; title: string; views: number; slug: string }[];
   usersPerDay: { date: string; count: number }[];
+  topScannedIngredients: { id: number; name: string; count: number }[];
+  topRecommendedRecipes: { id: number; title: string; slug: string; recommendedCount: number }[];
+  topWatchedVideos: { id: number; title: string; slug: string; videoViews: number }[];
 }
 
 export interface Paginated<T> {

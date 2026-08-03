@@ -45,6 +45,7 @@ router.patch(
 router.delete('/:id', authenticate, authorize('ADMIN'), RecipeController.remove);
 
 // Authenticated user actions
+router.post('/:id/video-view', RecipeController.registerVideoView);
 router.post('/:id/favorite', authenticate, RecipeController.toggleFavorite);
 router.post('/:id/video-like', authenticate, RecipeController.toggleVideoLike);
 router.post(

@@ -23,31 +23,27 @@ export function formatMinutes(min: number): string {
   return m ? `${h} ชม. ${m} นาที` : `${h} ชม.`;
 }
 
-// Convert a YouTube watch/share URL into an embeddable iframe URL.
-// Returns null if the URL isn't a recognizable YouTube link — callers
-// should fall back to a plain link instead of embedding an iframe.
-export function getYouTubeEmbedUrl(url?: string | null): string | null {
+// Extract the video ID from a YouTube watch/share/shorts/embed URL.
+// Returns null if the URL isn't a recognizable YouTube link.
+export function getYouTubeVideoId(url?: string | null): string | null {
   if (!url) return null;
   try {
     const u = new URL(url);
     const host = u.hostname.replace(/^www\./, '');
 
     if (host === 'youtu.be') {
-      const id = u.pathname.slice(1);
-      return id ? `https://www.youtube.com/embed/${id}` : null;
+      return u.pathname.slice(1) || null;
     }
 
     if (host === 'youtube.com' || host === 'm.youtube.com') {
       if (u.pathname === '/watch') {
-        const id = u.searchParams.get('v');
-        return id ? `https://www.youtube.com/embed/${id}` : null;
+        return u.searchParams.get('v');
       }
       if (u.pathname.startsWith('/embed/')) {
-        return url; // already an embed URL
+        return u.pathname.split('/')[2] || null;
       }
       if (u.pathname.startsWith('/shorts/')) {
-        const id = u.pathname.split('/')[2];
-        return id ? `https://www.youtube.com/embed/${id}` : null;
+        return u.pathname.split('/')[2] || null;
       }
     }
 
@@ -55,6 +51,21 @@ export function getYouTubeEmbedUrl(url?: string | null): string | null {
   } catch {
     return null;
   }
+}
+
+// Convert a YouTube watch/share URL into an embeddable iframe URL.
+// Returns null if the URL isn't a recognizable YouTube link — callers
+// should fall back to a plain link instead of embedding an iframe.
+export function getYouTubeEmbedUrl(url?: string | null): string | null {
+  const id = getYouTubeVideoId(url);
+  return id ? `https://www.youtube.com/embed/${id}?autoplay=1` : null;
+}
+
+// Best-effort thumbnail for a YouTube video, used for the click-to-play
+// overlay so we don't have to load the iframe until the user presses play.
+export function getYouTubeThumbnailUrl(url?: string | null): string | null {
+  const id = getYouTubeVideoId(url);
+  return id ? `https://img.youtube.com/vi/${id}/hqdefault.jpg` : null;
 }
 
 export const difficultyLabel: Record<string, string> = {

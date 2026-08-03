@@ -12,7 +12,13 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Skeleton } from '@/components/ui/skeleton';
 import { useAuth } from '@/lib/store';
 import { api, getErrorMessage } from '@/lib/api';
-import { resolveImage, formatMinutes, difficultyLabel, getYouTubeEmbedUrl } from '@/lib/utils';
+import {
+  resolveImage,
+  formatMinutes,
+  difficultyLabel,
+  getYouTubeEmbedUrl,
+  getYouTubeThumbnailUrl,
+} from '@/lib/utils';
 import type { Recipe } from '@/types';
 import {
   Clock,
@@ -38,10 +44,11 @@ export default function RecipeDetailPage() {
   const [favorited, setFavorited] = useState(false);
   const [favLoading, setFavLoading] = useState(false);
 
-  // video like
+  // video like + play tracking
   const [videoLiked, setVideoLiked] = useState(false);
   const [videoLikesCount, setVideoLikesCount] = useState(0);
   const [videoLikeLoading, setVideoLikeLoading] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
 
   // review form
   const [rating, setRating] = useState(5);
@@ -76,6 +83,13 @@ export default function RecipeDetailPage() {
     } finally {
       setFavLoading(false);
     }
+  };
+
+  const handlePlayVideo = () => {
+    if (!recipe) return;
+    setVideoPlaying(true);
+    // fire and forget — don't block playback on this
+    api.post(`/recipes/${recipe.id}/video-view`).catch(() => undefined);
   };
 
   const handleVideoLike = async () => {
@@ -153,6 +167,7 @@ export default function RecipeDetailPage() {
 
   const img = resolveImage(recipe.imageUrl);
   const videoEmbedUrl = getYouTubeEmbedUrl(recipe.videoUrl);
+  const videoThumbnailUrl = getYouTubeThumbnailUrl(recipe.videoUrl);
   const steps = recipe.instructions
     .split('\n')
     .map((s) => s.replace(/^\d+\.\s*/, '').trim())
@@ -200,14 +215,36 @@ export default function RecipeDetailPage() {
             </div>
 
             {videoEmbedUrl ? (
-              <div className="aspect-video overflow-hidden rounded-2xl bg-muted">
-                <iframe
-                  src={videoEmbedUrl}
-                  title={`วิดีโอสอนทำ ${recipe.title}`}
-                  className="h-full w-full"
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
+              <div className="relative aspect-video overflow-hidden rounded-2xl bg-muted">
+                {videoPlaying ? (
+                  <iframe
+                    src={videoEmbedUrl}
+                    title={`วิดีโอสอนทำ ${recipe.title}`}
+                    className="h-full w-full"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowFullScreen
+                  />
+                ) : (
+                  <button
+                    onClick={handlePlayVideo}
+                    className="group relative h-full w-full"
+                    aria-label="เล่นวิดีโอ"
+                  >
+                    {videoThumbnailUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={videoThumbnailUrl}
+                        alt={`ภาพตัวอย่างวิดีโอสอนทำ ${recipe.title}`}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-muted" />
+                    )}
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30 transition-colors group-hover:bg-black/40">
+                      <PlayCircle className="h-16 w-16 text-white drop-shadow-lg" />
+                    </div>
+                  </button>
+                )}
               </div>
             ) : (
               <a

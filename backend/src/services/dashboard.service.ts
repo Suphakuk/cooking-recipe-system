@@ -68,6 +68,39 @@ export const DashboardService = {
     }
     const usersPerDay = Object.entries(dayBuckets).map(([date, count]) => ({ date, count }));
 
+    // Top 5 most-scanned ingredients (from detection items that matched a known ingredient)
+    const scannedGroups = await prisma.detectionItem.groupBy({
+      by: ['ingredientId'],
+      where: { ingredientId: { not: null } },
+      _count: { _all: true },
+      orderBy: { _count: { ingredientId: 'desc' } },
+      take: 5,
+    });
+    const scannedIngredientIds = scannedGroups.map((g) => g.ingredientId as number);
+    const scannedIngredients = scannedIngredientIds.length
+      ? await prisma.ingredient.findMany({ where: { id: { in: scannedIngredientIds } } })
+      : [];
+    const topScannedIngredients = scannedGroups.map((g) => {
+      const ing = scannedIngredients.find((i) => i.id === g.ingredientId);
+      return { id: g.ingredientId as number, name: ing?.name ?? 'ไม่ทราบชื่อ', count: g._count._all };
+    });
+
+    // Top 5 most-recommended recipes (recipes that showed up in /recommend results most often)
+    const topRecommendedRecipes = await prisma.recipe.findMany({
+      where: { recommendedCount: { gt: 0 } },
+      orderBy: { recommendedCount: 'desc' },
+      take: 5,
+      select: { id: true, title: true, slug: true, recommendedCount: true },
+    });
+
+    // Top 5 most-watched videos (recipes with a video, ranked by actual play clicks)
+    const topWatchedVideos = await prisma.recipe.findMany({
+      where: { videoUrl: { not: null }, videoViews: { gt: 0 } },
+      orderBy: { videoViews: 'desc' },
+      take: 5,
+      select: { id: true, title: true, slug: true, videoViews: true },
+    });
+
     return {
       totals: {
         users: totalUsers,
@@ -81,6 +114,9 @@ export const DashboardService = {
       recipesByCategory,
       topRecipes,
       usersPerDay,
+      topScannedIngredients,
+      topRecommendedRecipes,
+      topWatchedVideos,
     };
   },
 };

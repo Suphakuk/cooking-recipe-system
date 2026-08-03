@@ -59,6 +59,12 @@ export const RecipeController = {
     return sendSuccess(res, items, 'Favorites list', 200, meta);
   }),
 
+  // Video Views
+  registerVideoView: asyncHandler(async (req: Request, res: Response) => {
+    const result = await RecipeService.registerVideoView(Number(req.params.id));
+    return sendSuccess(res, result, 'Video view registered');
+  }),
+
   // Video Likes
   toggleVideoLike: asyncHandler(async (req: Request, res: Response) => {
     const result = await RecipeService.toggleVideoLike(req.user!.sub, Number(req.params.id));
