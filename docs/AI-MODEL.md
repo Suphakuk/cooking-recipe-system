@@ -51,21 +51,22 @@ COCO 80 คลาสเป็นวัตถุทั่วไป (คน, ร�
 
 ## 2. เปรียบเทียบ YOLO vs CNN + วัด mAP (1.4.3.1, 1.4.3.2)
 
-งานนี้เป็น**งานวิจัยจริง** ต้องมี:
+**อัปเดต: มี dataset แล้ว** — [`food-ingredients-dataset` v4](https://universe.roboflow.com/food-recipe-ingredient-images-0gnku/food-ingredients-dataset/dataset/4) จาก Roboflow Universe (120 คลาส, YOLO format, CC BY 4.0)
 
-1. **ชุดข้อมูลรูปภาพวัตถุดิบไทย** ที่ label ไว้แล้ว (bounding box สำหรับ YOLO, class label สำหรับ CNN) อย่างน้อยหลักร้อยรูปต่อคลาส
-2. **เครื่องที่มี GPU** สำหรับเทรน (แนะนำ Google Colab — มี GPU ฟรี)
+โน้ตบุ๊กพร้อมรันอยู่ที่ [`docs/yolo-vs-cnn-comparison.ipynb`](./yolo-vs-cnn-comparison.ipynb) — เปิดใน Google Colab (ต้องตั้ง Runtime เป็น GPU) แล้วรันทีละเซลล์ตามลำดับ ทำ 3 อย่าง:
 
-### ถ้ายังไม่มีชุดข้อมูล ทำได้ 2 ทาง
-- **เก็บเอง**: ถ่ายรูปวัตถุดิบแต่ละชนิดหลายมุม หลายแสง แล้ว label ด้วย [Roboflow](https://roboflow.com) (ฟรี, ใช้งานง่าย, export เป็น YOLO format ได้ตรง)
-- **หาชุดข้อมูลสำเร็จ**: ค้นหาบน [Roboflow Universe](https://universe.roboflow.com) หรือ Kaggle ด้วยคำว่า "food ingredients detection" / "vegetable detection" แล้วปรับ label ให้ตรงกับวัตถุดิบ 20 ชนิดที่ระบบมี
+1. ดาวน์โหลด dataset จาก Roboflow ด้วย API key ของคุณ (ใส่ในเซลล์แรกๆของ notebook)
+2. Fine-tune **YOLOv8n** บน dataset จริง แล้ววัด **mAP@0.5**, **mAP@0.5:0.95**, precision, recall บน test set จริง
+3. แปลงชุดข้อมูลเดียวกันเป็นรูปครอปตาม bounding box แล้วเทรน **ResNet18 (CNN classifier)** บนวัตถุดิบชิ้นเดียวกัน วัด accuracy/precision/recall/F1 บน test set เดียวกัน — เพื่อให้การเปรียบเทียบยุติธรรม (ข้อมูลชุดเดียวกันทั้งสองโมเดล)
+4. สรุปตารางเปรียบเทียบท้ายโน้ตบุ๊ก
 
-### เมื่อมีชุดข้อมูลแล้ว
-บอกผมได้เลย — ผมจะเขียน Colab notebook ที่:
-- เทรน YOLOv8 (fine-tune จาก `yolov8n.pt`) บนชุดข้อมูลของคุณ
-- เทรน CNN classifier (เช่น ResNet18/MobileNetV2 แบบ transfer learning) บนชุดข้อมูลเดียวกัน
-- วัด **mAP@0.5** ของ YOLO และ **accuracy/F1** ของ CNN บน test set เดียวกัน
-- สรุปตารางเปรียบเทียบทั้งสองโมเดล พร้อมกราฟ precision-recall
+**สำคัญ:** ทุกตัวเลขในโน้ตบุ๊กมาจากการเทรน/ทดสอบจริงเมื่อคุณรันเอง — ไม่มีตัวเลขใดถูกใส่ไว้ล่วงหน้า เพราะผมไม่มี GPU/เวลาเทรนจริงในนี้ ตัวโน้ตบุ๊กมี `USE_SUBSET` ให้ลองรันเร็วๆกับ 8 คลาสก่อน (เทสว่า pipeline รันผ่านจริง) แล้วค่อยตั้งเป็น `False` เพื่อรันเต็ม 120 คลาสสำหรับผลที่เอาไปเขียนรายงานจริง
 
-**สิ่งที่ผมจะไม่ทำ:** ใส่เลขผลลัพธ์ (mAP, accuracy) โดยไม่มีการเทรนจริง — ตัวเลขพวกนี้ต้องมาจากการรันจริงบนข้อมูลจริงเท่านั้น
-เพื่อความถูกต้องของงานวิจัยที่คุณจะส่งอาจารย์
+รันแล้วเจอปัญหา หรืออยากให้ช่วยอ่านผลลัพธ์/เขียนสรุปเป็นภาษารายงาน ส่ง output ที่ได้กลับมาบอกได้เลยครับ
+
+### เอาโมเดลที่เทรนแล้วมาใช้ในเว็บจริง (ไม่บังคับ)
+
+โมเดล YOLOv8n ที่ fine-tune จบแล้วจะได้ไฟล์ `best.pt` (อยู่ที่ `runs_yolo/ingredient_detector/weights/best.pt` ใน Colab)
+ดาวน์โหลดไฟล์นี้มาวางแทนที่ `yolo-service/yolov8n.pt` แล้วแก้ `yolo-service/app.py` บรรทัด `model = YOLO("yolov8n.pt")`
+ให้ชี้ไปที่ไฟล์ใหม่ — ตัวตรวจจับในเว็บจะรู้จักวัตถุดิบทั้ง 120 ชนิดในชุดข้อมูลนี้แทนที่จะเป็น COCO 80 คลาสทั่วไป
+(อาจต้องเพิ่ม `nameEn` ของวัตถุดิบใหม่ๆในฐานข้อมูลให้ตรงกับชื่อคลาสด้วย เพื่อให้ระบบจับคู่ได้ถูก)
