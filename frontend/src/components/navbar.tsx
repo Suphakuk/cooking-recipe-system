@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useAuth } from '@/lib/store';
@@ -13,6 +14,15 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+  DialogClose,
+} from '@/components/ui/dialog';
 import { resolveImage, cn } from '@/lib/utils';
 import { ChefHat, LayoutDashboard, LogOut, User as UserIcon, Heart, Sparkles } from 'lucide-react';
 
@@ -25,8 +35,10 @@ export function Navbar() {
   const { user, logout } = useAuth();
   const pathname = usePathname();
   const router = useRouter();
+  const [logoutDialogOpen, setLogoutDialogOpen] = useState(false);
 
   const handleLogout = async () => {
+    setLogoutDialogOpen(false);
     await logout();
     router.push('/');
   };
@@ -99,7 +111,10 @@ export function Navbar() {
                   </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={handleLogout} className="text-destructive">
+                <DropdownMenuItem
+                  onClick={() => setLogoutDialogOpen(true)}
+                  className="text-destructive"
+                >
                   <LogOut className="mr-2 h-4 w-4" /> ออกจากระบบ
                 </DropdownMenuItem>
               </DropdownMenuContent>
@@ -116,6 +131,23 @@ export function Navbar() {
           )}
         </div>
       </div>
+
+      <Dialog open={logoutDialogOpen} onOpenChange={setLogoutDialogOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>ออกจากระบบ?</DialogTitle>
+            <DialogDescription>คุณต้องการออกจากระบบใช่ไหม</DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <DialogClose asChild>
+              <Button variant="outline">ยกเลิก</Button>
+            </DialogClose>
+            <Button variant="destructive" onClick={handleLogout}>
+              <LogOut className="h-4 w-4" /> ออกจากระบบ
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </header>
   );
 }

@@ -12,7 +12,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { ChefHat, Loader2 } from 'lucide-react';
+import { ChefHat, Loader2, ArrowLeft } from 'lucide-react';
 
 const schema = z.object({
   email: z.string().email('อีเมลไม่ถูกต้อง'),
@@ -47,6 +47,13 @@ export default function LoginPage() {
   return (
     <div className="flex min-h-screen items-center justify-center bg-paper p-4">
       <div className="w-full max-w-md">
+        <button
+          onClick={() => router.back()}
+          className="mb-4 flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+        >
+          <ArrowLeft className="h-4 w-4" /> ย้อนกลับ
+        </button>
+
         <Link href="/" className="mb-6 flex items-center justify-center gap-2">
           <span className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <ChefHat className="h-5 w-5" />
