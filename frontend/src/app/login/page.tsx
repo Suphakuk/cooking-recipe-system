@@ -86,11 +86,6 @@ export default function LoginPage() {
               </Button>
             </form>
 
-            <div className="mt-4 rounded-lg bg-muted/60 p-3 text-xs text-muted-foreground">
-              <p className="font-medium text-foreground">บัญชีทดลอง:</p>
-              <p>แอดมิน: admin@recipe.com / Admin@123</p>
-              <p>ผู้ใช้: user@recipe.com / User@123</p>
-            </div>
 
             <p className="mt-6 text-center text-sm text-muted-foreground">
               ยังไม่มีบัญชี?{' '}
