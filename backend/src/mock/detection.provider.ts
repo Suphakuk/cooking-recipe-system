@@ -3,15 +3,14 @@
  *  AI Detection Service Interface
  * ============================================================
  *  This module defines the contract for the ingredient-detection
- *  model. The current implementation is a MOCK that returns random
- *  plausible results. To plug in a real YOLO/CNN model later:
+ *  model. Three providers are available:
  *
- *    1. Create a new class that implements `IDetectionProvider`.
- *    2. Call your model server (e.g. FastAPI/TorchServe) inside `detect()`.
- *    3. Return results in the same `DetectionResult` shape.
- *    4. Swap the exported `detectionProvider` at the bottom of this file.
+ *    - MockDetectionProvider   : random fake results (default/fallback)
+ *    - YoloHttpProvider        : calls a self-hosted YOLOv8 microservice
+ *    - RoboflowDetectionProvider: calls Roboflow's hosted detection API
  *
- *  Nothing else in the codebase needs to change.
+ *  Swap providers via the DETECTION_PROVIDER env var at the bottom
+ *  of this file. Nothing else in the codebase needs to change.
  * ============================================================
  */
 
@@ -125,11 +124,86 @@ export class YoloHttpProvider implements IDetectionProvider {
 }
 
 // ------------------------------------------------------------
+// Real provider: calls Roboflow's hosted detection API
+// ------------------------------------------------------------
+// Model used: "FOOD-INGREDIENTS detection" (food-ingredients-detection-6ce7j/1)
+// mAP@50 ~92%. Some Roboflow class names differ from our internal nameEn
+// values, so we map them here before returning results.
+const ROBOFLOW_LABEL_MAP: Record<string, string> = {
+  Capsicum: 'bell pepper',
+  'Onion Leaves': 'green onion',
+  'Chili Pepper -Khursani-': 'chili',
+  'Akabare Khursani': 'chili',
+  'Lime -Kagati-': 'lime',
+};
+
+interface RoboflowPrediction {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  confidence: number;
+  class: string;
+}
+
+interface RoboflowResponse {
+  image: { width: number; height: number };
+  predictions: RoboflowPrediction[];
+}
+
+export class RoboflowDetectionProvider implements IDetectionProvider {
+  public readonly name = 'roboflow-food-ingredients-v1';
+  constructor(private apiKey: string, private modelId: string) {}
+
+  async detect(image: Buffer): Promise<DetectionResult> {
+    const start = Date.now();
+    const base64Image = image.toString('base64');
+
+    const res = await fetch(`https://detect.roboflow.com/${this.modelId}?api_key=${this.apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: base64Image,
+    });
+
+    if (!res.ok) {
+      throw new Error(`Roboflow API responded with ${res.status}`);
+    }
+
+    const data = (await res.json()) as RoboflowResponse;
+    const imgW = data.image.width;
+    const imgH = data.image.height;
+
+    const objects: DetectedObject[] = data.predictions.map((p) => {
+      const mappedLabel = ROBOFLOW_LABEL_MAP[p.class] ?? p.class;
+      return {
+        label: mappedLabel.toLowerCase(),
+        confidence: parseFloat(p.confidence.toFixed(3)),
+        bbox: {
+          x: parseFloat(((p.x - p.width / 2) / imgW).toFixed(3)),
+          y: parseFloat(((p.y - p.height / 2) / imgH).toFixed(3)),
+          w: parseFloat((p.width / imgW).toFixed(3)),
+          h: parseFloat((p.height / imgH).toFixed(3)),
+        },
+      };
+    });
+
+    return {
+      modelName: this.name,
+      processMs: Date.now() - start,
+      objects,
+      raw: data,
+    };
+  }
+}
+
+// ------------------------------------------------------------
 // Provider selection
 // ------------------------------------------------------------
-// Set DETECTION_PROVIDER=yolo and YOLO_SERVICE_URL=http://host:8000 in .env
-// to use the real YOLOv8 model (see /yolo-service). Defaults to the mock so
-// existing deployments keep working until the Python service is running.
+// Set in backend/.env:
+//   DETECTION_PROVIDER=yolo      + YOLO_SERVICE_URL=http://host:8000
+//   DETECTION_PROVIDER=roboflow  + ROBOFLOW_API_KEY=... + ROBOFLOW_MODEL_ID=...
+// Defaults to the mock so existing deployments keep working until a real
+// provider is configured.
 function buildProvider(): IDetectionProvider {
   if (process.env.DETECTION_PROVIDER === 'yolo') {
     const endpoint = process.env.YOLO_SERVICE_URL;
@@ -138,6 +212,16 @@ function buildProvider(): IDetectionProvider {
     }
     return new YoloHttpProvider(endpoint);
   }
+
+  if (process.env.DETECTION_PROVIDER === 'roboflow') {
+    const apiKey = process.env.ROBOFLOW_API_KEY;
+    const modelId = process.env.ROBOFLOW_MODEL_ID;
+    if (!apiKey || !modelId) {
+      throw new Error('ROBOFLOW_API_KEY and ROBOFLOW_MODEL_ID must be set when DETECTION_PROVIDER=roboflow');
+    }
+    return new RoboflowDetectionProvider(apiKey, modelId);
+  }
+
   return new MockDetectionProvider();
 }
 
