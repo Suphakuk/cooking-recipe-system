@@ -3,11 +3,12 @@
  *  AI Detection Service Interface
  * ============================================================
  *  This module defines the contract for the ingredient-detection
- *  model. Three providers are available:
+ *  model. Providers available:
  *
- *    - MockDetectionProvider   : random fake results (default/fallback)
- *    - YoloHttpProvider        : calls a self-hosted YOLOv8 microservice
+ *    - MockDetectionProvider    : random fake results (default/fallback)
+ *    - YoloHttpProvider         : calls a self-hosted YOLOv8 microservice
  *    - RoboflowDetectionProvider: calls Roboflow's hosted detection API
+ *                                 (model: ingredients-agbcq/1)
  *
  *  Swap providers via the DETECTION_PROVIDER env var at the bottom
  *  of this file. Nothing else in the codebase needs to change.
@@ -29,8 +30,6 @@ export interface DetectionResult {
 
 export interface IDetectionProvider {
   readonly name: string;
-  // Accepts the raw image bytes (Buffer). A real provider would send these to a
-  // model server; the mock ignores them.
   detect(image: Buffer): Promise<DetectionResult>;
 }
 
@@ -64,11 +63,8 @@ export class MockDetectionProvider implements IDetectionProvider {
 
   async detect(_image: Buffer): Promise<DetectionResult> {
     const start = Date.now();
-
-    // Simulate model latency
     await new Promise((r) => setTimeout(r, randomBetween(300, 800)));
 
-    // Pick 2-5 random unique classes
     const count = Math.floor(randomBetween(2, 6));
     const shuffled = [...MOCK_CLASSES].sort(() => Math.random() - 0.5);
     const picked = shuffled.slice(0, count);
@@ -126,15 +122,15 @@ export class YoloHttpProvider implements IDetectionProvider {
 // ------------------------------------------------------------
 // Real provider: calls Roboflow's hosted detection API
 // ------------------------------------------------------------
-// Model used: "FOOD-INGREDIENTS detection" (food-ingredients-detection-6ce7j/1)
-// mAP@50 ~92%. Some Roboflow class names differ from our internal nameEn
-// values, so we map them here before returning results.
+// Model used: "ingredients" by Wonkeun Jung (ingredients-agbcq/1)
+// 244 classes, mixed-case duplicates exist (e.g. "tomato" and "Tomato" are
+// separate classes) — we lowercase everything before mapping so both collapse
+// into the same internal name.
 const ROBOFLOW_LABEL_MAP: Record<string, string> = {
-  Capsicum: 'bell pepper',
-  'Onion Leaves': 'green onion',
-  'Chili Pepper -Khursani-': 'chili',
-  'Akabare Khursani': 'chili',
-  'Lime -Kagati-': 'lime',
+  chilli: 'chili',
+  bell_pepper: 'bell pepper',
+  'bell pepper': 'bell pepper',
+  milk: 'milk',
 };
 
 interface RoboflowPrediction {
@@ -152,7 +148,7 @@ interface RoboflowResponse {
 }
 
 export class RoboflowDetectionProvider implements IDetectionProvider {
-  public readonly name = 'roboflow-food-ingredients-v1';
+  public readonly name = 'roboflow-ingredients-agbcq-v1';
   constructor(private apiKey: string, private modelId: string) {}
 
   async detect(image: Buffer): Promise<DetectionResult> {
@@ -174,9 +170,10 @@ export class RoboflowDetectionProvider implements IDetectionProvider {
     const imgH = data.image.height;
 
     const objects: DetectedObject[] = data.predictions.map((p) => {
-      const mappedLabel = ROBOFLOW_LABEL_MAP[p.class] ?? p.class;
+      const lowerClass = p.class.toLowerCase();
+      const mappedLabel = ROBOFLOW_LABEL_MAP[lowerClass] ?? lowerClass;
       return {
-        label: mappedLabel.toLowerCase(),
+        label: mappedLabel,
         confidence: parseFloat(p.confidence.toFixed(3)),
         bbox: {
           x: parseFloat(((p.x - p.width / 2) / imgW).toFixed(3)),
@@ -201,7 +198,7 @@ export class RoboflowDetectionProvider implements IDetectionProvider {
 // ------------------------------------------------------------
 // Set in backend/.env:
 //   DETECTION_PROVIDER=yolo      + YOLO_SERVICE_URL=http://host:8000
-//   DETECTION_PROVIDER=roboflow  + ROBOFLOW_API_KEY=... + ROBOFLOW_MODEL_ID=...
+//   DETECTION_PROVIDER=roboflow  + ROBOFLOW_API_KEY=... + ROBOFLOW_MODEL_ID=ingredients-agbcq/1
 // Defaults to the mock so existing deployments keep working until a real
 // provider is configured.
 function buildProvider(): IDetectionProvider {
