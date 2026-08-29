@@ -8,7 +8,9 @@
  *    - MockDetectionProvider    : random fake results (default/fallback)
  *    - YoloHttpProvider         : calls a self-hosted YOLOv8 microservice
  *    - RoboflowDetectionProvider: calls Roboflow's hosted detection API
- *                                 (model: ingredients-agbcq/1)
+ *                                 (model: ingredients-agbcq/1), filtered
+ *                                 down to only the ingredients this app
+ *                                 actually knows about.
  *
  *  Swap providers via the DETECTION_PROVIDER env var at the bottom
  *  of this file. Nothing else in the codebase needs to change.
@@ -34,9 +36,12 @@ export interface IDetectionProvider {
 }
 
 // ------------------------------------------------------------
-// Mock provider
+// Ingredients this app actually knows about (its nameEn values).
+// Any detection that doesn't map to one of these is dropped, so
+// noise from irrelevant classes (e.g. "bottle", "can", "sandwich",
+// "cake") never reaches the user.
 // ------------------------------------------------------------
-const MOCK_CLASSES = [
+const ALLOWED_INGREDIENTS = [
   'tomato',
   'egg',
   'onion',
@@ -52,8 +57,17 @@ const MOCK_CLASSES = [
   'shrimp',
   'lime',
   'cucumber',
+  'fish sauce',
+  'sugar',
+  'soy sauce',
+  'vegetable oil',
+  'green onion',
+  'milk',
 ];
 
+// ------------------------------------------------------------
+// Mock provider
+// ------------------------------------------------------------
 function randomBetween(min: number, max: number): number {
   return Math.random() * (max - min) + min;
 }
@@ -66,7 +80,7 @@ export class MockDetectionProvider implements IDetectionProvider {
     await new Promise((r) => setTimeout(r, randomBetween(300, 800)));
 
     const count = Math.floor(randomBetween(2, 6));
-    const shuffled = [...MOCK_CLASSES].sort(() => Math.random() - 0.5);
+    const shuffled = [...ALLOWED_INGREDIENTS].sort(() => Math.random() - 0.5);
     const picked = shuffled.slice(0, count);
 
     const objects: DetectedObject[] = picked.map((label) => ({
@@ -125,12 +139,13 @@ export class YoloHttpProvider implements IDetectionProvider {
 // Model used: "ingredients" by Wonkeun Jung (ingredients-agbcq/1)
 // 244 classes, mixed-case duplicates exist (e.g. "tomato" and "Tomato" are
 // separate classes) — we lowercase everything before mapping so both collapse
-// into the same internal name.
+// into the same internal name. Results are then filtered down to
+// ALLOWED_INGREDIENTS so only ingredients this app actually supports
+// are ever returned.
 const ROBOFLOW_LABEL_MAP: Record<string, string> = {
   chilli: 'chili',
   bell_pepper: 'bell pepper',
   'bell pepper': 'bell pepper',
-  milk: 'milk',
 };
 
 interface RoboflowPrediction {
@@ -169,20 +184,24 @@ export class RoboflowDetectionProvider implements IDetectionProvider {
     const imgW = data.image.width;
     const imgH = data.image.height;
 
-    const objects: DetectedObject[] = data.predictions.map((p) => {
-      const lowerClass = p.class.toLowerCase();
-      const mappedLabel = ROBOFLOW_LABEL_MAP[lowerClass] ?? lowerClass;
-      return {
-        label: mappedLabel,
-        confidence: parseFloat(p.confidence.toFixed(3)),
-        bbox: {
-          x: parseFloat(((p.x - p.width / 2) / imgW).toFixed(3)),
-          y: parseFloat(((p.y - p.height / 2) / imgH).toFixed(3)),
-          w: parseFloat((p.width / imgW).toFixed(3)),
-          h: parseFloat((p.height / imgH).toFixed(3)),
-        },
-      };
-    });
+    const objects: DetectedObject[] = data.predictions
+      .map((p) => {
+        const lowerClass = p.class.toLowerCase();
+        const mappedLabel = ROBOFLOW_LABEL_MAP[lowerClass] ?? lowerClass;
+        return {
+          label: mappedLabel,
+          confidence: parseFloat(p.confidence.toFixed(3)),
+          bbox: {
+            x: parseFloat(((p.x - p.width / 2) / imgW).toFixed(3)),
+            y: parseFloat(((p.y - p.height / 2) / imgH).toFixed(3)),
+            w: parseFloat((p.width / imgW).toFixed(3)),
+            h: parseFloat((p.height / imgH).toFixed(3)),
+          },
+        };
+      })
+      // Drop anything that isn't one of the ingredients this app supports
+      // (e.g. "bottle", "can", "sandwich", "cake" from the model's other classes).
+      .filter((obj) => ALLOWED_INGREDIENTS.includes(obj.label));
 
     return {
       modelName: this.name,
