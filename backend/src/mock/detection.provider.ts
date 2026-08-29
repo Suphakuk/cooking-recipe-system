@@ -14,6 +14,12 @@
  *
  *  Swap providers via the DETECTION_PROVIDER env var at the bottom
  *  of this file. Nothing else in the codebase needs to change.
+ *
+ *  DEBUG NOTE: RoboflowDetectionProvider logs full error details with
+ *  console.error before rethrowing, so failures are visible in Render
+ *  logs even if the calling controller only returns a generic message
+ *  to the client. Safe to leave in permanently — it only logs, never
+ *  changes the response sent to the user.
  * ============================================================
  */
 
@@ -168,47 +174,66 @@ export class RoboflowDetectionProvider implements IDetectionProvider {
 
   async detect(image: Buffer): Promise<DetectionResult> {
     const start = Date.now();
-    const base64Image = image.toString('base64');
 
-    const res = await fetch(`https://detect.roboflow.com/${this.modelId}?api_key=${this.apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: base64Image,
-    });
+    try {
+      const base64Image = image.toString('base64');
 
-    if (!res.ok) {
-      throw new Error(`Roboflow API responded with ${res.status}`);
+      const res = await fetch(`https://detect.roboflow.com/${this.modelId}?api_key=${this.apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: base64Image,
+      });
+
+      if (!res.ok) {
+        // Read the response body too — Roboflow usually explains *why*
+        // the request failed (bad key, bad model id, quota exceeded, etc.)
+        const bodyText = await res.text().catch(() => '(could not read response body)');
+        console.error('[RoboflowDetectionProvider] API error', {
+          status: res.status,
+          statusText: res.statusText,
+          body: bodyText,
+          modelId: this.modelId,
+        });
+        throw new Error(`Roboflow API responded with ${res.status}`);
+      }
+
+      const data = (await res.json()) as RoboflowResponse;
+      const imgW = data.image.width;
+      const imgH = data.image.height;
+
+      const objects: DetectedObject[] = data.predictions
+        .map((p) => {
+          const lowerClass = p.class.toLowerCase();
+          const mappedLabel = ROBOFLOW_LABEL_MAP[lowerClass] ?? lowerClass;
+          return {
+            label: mappedLabel,
+            confidence: parseFloat(p.confidence.toFixed(3)),
+            bbox: {
+              x: parseFloat(((p.x - p.width / 2) / imgW).toFixed(3)),
+              y: parseFloat(((p.y - p.height / 2) / imgH).toFixed(3)),
+              w: parseFloat((p.width / imgW).toFixed(3)),
+              h: parseFloat((p.height / imgH).toFixed(3)),
+            },
+          };
+        })
+        .filter((obj) => ALLOWED_INGREDIENTS.includes(obj.label));
+
+      console.log('[RoboflowDetectionProvider] success', {
+        rawPredictionCount: data.predictions.length,
+        filteredCount: objects.length,
+      });
+
+      return {
+        modelName: this.name,
+        processMs: Date.now() - start,
+        objects,
+        raw: data,
+      };
+    } catch (err) {
+      // Log full details regardless of what the caller does with this error.
+      console.error('[RoboflowDetectionProvider] detect() threw', err);
+      throw err;
     }
-
-    const data = (await res.json()) as RoboflowResponse;
-    const imgW = data.image.width;
-    const imgH = data.image.height;
-
-    const objects: DetectedObject[] = data.predictions
-      .map((p) => {
-        const lowerClass = p.class.toLowerCase();
-        const mappedLabel = ROBOFLOW_LABEL_MAP[lowerClass] ?? lowerClass;
-        return {
-          label: mappedLabel,
-          confidence: parseFloat(p.confidence.toFixed(3)),
-          bbox: {
-            x: parseFloat(((p.x - p.width / 2) / imgW).toFixed(3)),
-            y: parseFloat(((p.y - p.height / 2) / imgH).toFixed(3)),
-            w: parseFloat((p.width / imgW).toFixed(3)),
-            h: parseFloat((p.height / imgH).toFixed(3)),
-          },
-        };
-      })
-      // Drop anything that isn't one of the ingredients this app supports
-      // (e.g. "bottle", "can", "sandwich", "cake" from the model's other classes).
-      .filter((obj) => ALLOWED_INGREDIENTS.includes(obj.label));
-
-    return {
-      modelName: this.name,
-      processMs: Date.now() - start,
-      objects,
-      raw: data,
-    };
   }
 }
 
